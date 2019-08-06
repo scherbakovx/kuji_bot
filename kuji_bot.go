@@ -20,7 +20,8 @@ import (
 
 // Show struct contains show id
 type Show struct {
-	ID string
+	ID   string
+	Link string
 }
 
 // SensitiveData struct contains all secret keys for proxy and Telegram
@@ -108,16 +109,21 @@ func check(url string, id int64, bot *tgbotapi.BotAPI, collection *mongo.Collect
 		a := htmlquery.FindOne(n, "//a[@class='order']")
 
 		showID := htmlquery.SelectAttr(a, "data-id")
+		showImage := htmlquery.FindOne(a, "//div[contains(@class, 'bgimg')]")
+		showImageLink := htmlquery.SelectAttr(showImage, "data-original")
+
 		filter := bson.D{{"id", showID}}
 
 		var result Show
 		err = collection.FindOne(context.TODO(), filter).Decode(&result)
 		if err != nil {
-			text := fmt.Sprintf("New show! Maybe it is Kuji, check faster: https://standupstore.ru")
+			text := fmt.Sprintf("New show: %s", showImageLink)
 			msg := tgbotapi.NewMessage(id, text)
 			bot.Send(msg)
 
-			show := Show{showID}
+			show := Show{
+				showID,
+				showImageLink}
 			_, err := collection.InsertOne(context.TODO(), show)
 			if err != nil {
 				log.Fatal(err)
