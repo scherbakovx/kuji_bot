@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"time"
 
@@ -15,7 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"golang.org/x/net/proxy"
 )
 
 // Show struct contains show id
@@ -51,28 +49,8 @@ func createMongoConnection(mongoURI string) *mongo.Client {
 	return client
 }
 
-func createProxyHTTPClient(user string, pass string, host string, port int) *http.Client {
-	auth := proxy.Auth{
-		User:     user,
-		Password: pass,
-	}
-
-	dialSocksProxy, err := proxy.SOCKS5("tcp", fmt.Sprintf("%s:%d", host, port), &auth, proxy.Direct)
-	if err != nil {
-		fmt.Println("Error connecting to proxy:", err)
-	}
-	tr := &http.Transport{Dial: dialSocksProxy.Dial}
-
-	// Create client
-	myClient := &http.Client{
-		Transport: tr,
-	}
-
-	return myClient
-}
-
-func botWork(client *http.Client, token string) *tgbotapi.BotAPI {
-	bot, err := tgbotapi.NewBotAPIWithClient(token, client)
+func botWork(token string) *tgbotapi.BotAPI {
+	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -146,8 +124,7 @@ func main() {
 
 	data := getSensitiveData(dataPath)
 
-	customHTTPClient := createProxyHTTPClient(data.User, data.Pass, data.Host, data.Port)
-	bot := botWork(customHTTPClient, data.BotToken)
+	bot := botWork(data.BotToken)
 
 	mongoClient := createMongoConnection(data.MongoURI)
 	collection := mongoClient.Database(data.MongoDB).Collection(data.MongoCollection)
