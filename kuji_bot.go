@@ -18,7 +18,6 @@ import (
 
 // Show struct contains show id
 type Show struct {
-	ID   string
 	Link string
 }
 
@@ -83,14 +82,12 @@ func check(url string, id int64, bot *tgbotapi.BotAPI, collection *mongo.Collect
 		panic(err)
 	}
 
-	for _, n := range htmlquery.Find(doc, "//a[@class='order']") {
-		a := htmlquery.FindOne(n, "//a[@class='order']")
+	for _, n := range htmlquery.Find(doc, "//div[contains(@class, 'bgimg_first_hover')]") {
+		a := htmlquery.FindOne(n, "//div[contains(@class, 'bgimg_first_hover')]")
 
-		showID := htmlquery.SelectAttr(a, "data-id")
-		showImage := htmlquery.FindOne(a, "//div[contains(@class, 'bgimg')]")
-		showImageLink := htmlquery.SelectAttr(showImage, "data-original")
+		showImageLink := htmlquery.SelectAttr(a, "data-original")
 
-		filter := bson.D{{"id", showID}}
+		filter := bson.D{{"link", showImageLink}}
 
 		var result Show
 		err = collection.FindOne(context.TODO(), filter).Decode(&result)
@@ -100,7 +97,6 @@ func check(url string, id int64, bot *tgbotapi.BotAPI, collection *mongo.Collect
 			bot.Send(msg)
 
 			show := Show{
-				showID,
 				showImageLink}
 			_, err := collection.InsertOne(context.TODO(), show)
 			if err != nil {
